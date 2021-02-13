@@ -106,6 +106,9 @@ void InputAnalyzer::drawSpectralCentroid()
     float nyquist = (float)audio::master()->getSampleRate() / 2.0f;
     Rectf bounds = mSpectrumPlot.getBounds();
 
+    float MyQuisp = (float)audio::master()->getSampleRate(); // TE test
+    float frNormT = spectralCentroid / MyQuisp; // TE test
+
     float freqNormalized = spectralCentroid / nyquist;
     float barCenter = bounds.x1 + freqNormalized * bounds.getWidth();
     // try to read frequencies
@@ -114,14 +117,26 @@ void InputAnalyzer::drawSpectralCentroid()
     gl::ScopedColor colorScope( 0.85f, 0.45f, 0, 0.4f ); // transparent orange
     gl::drawSolidRect( verticalBar );
     
-
-    // TE another attempt
+    float FBins = bounds.x1 + frNormT * 640;// bounds.getWidth();
+    // might need to correct since bounds could change dep on scr size
+//    float specY = bounds.y1 + frNormT * bounds.getHeight();
+    float FVolm = audio::linearToDecibel( mMagSpectrum[FBins] ); // bin = bounds.x1 identify bin array index
+//    console() << "bin-" << FBins << "|vol " << FVolm << " ";
+    gl::color(1,1,1);
+    gl::drawSolidCircle(vec2(FBins, FVolm), 50);
+    
+    if ((FBins > 59) && (FBins < 64) && (FVolm > 0)) {
+        gl::color(1,0,0);
+        gl::drawSolidCircle(vec2(getWindowCenter().x,getWindowCenter().y), FVolm * 5);
+    }
+    
     // human hearing 20hz 20000hz - only need range of 30 - 5000
     // bin 1000 = 21533
     // bin 800 = 17226.6
     // bin 500 = 10766.6
     // bin 300 = 6459.96
     // bin 250 = 5383.3 range end
+    // bin 60-65 = 329 high e string guitar
     // bin 10 = 215.332
     // bin 5 = 107.666
     // bin 4 = 86.1328
@@ -133,10 +148,8 @@ void InputAnalyzer::drawSpectralCentroid()
     // bass 5 string 31hz - 262hz
     // guitar 82hz - 1379hz
     // drums 60z (kick) - 5000hz
-
     
- //   float freqDetect = mMonitorSpectralNode->getFreqForBin(250);
- //    console() << " binF = " << freqDetect << " ";
+    // float freqDetect = mMonitorSpectralNode->getFreqForBin(250);
     //gl::clear();
     gl::color(Color(1.0f, 0.0f, .7f));
     //gl::drawSolidRect(Rectf(0,0,200,200) );
@@ -147,7 +160,6 @@ void InputAnalyzer::drawSpectralCentroid()
     gl::drawSolidCircle(vec2(getWindowCenter().x*0.5f,getWindowCenter().y), 100);
     // want to test reading frequencies 65 to 440 hz (baritone)
     // if freq <> 65 440 then draw circle with amplitude as radius
-    
     
     // size_t numBins = mMonitorSpectralNode->getFftSize() / 2;
     float bin = mMonitorSpectralNode->getFftSize() / 2; //TE
