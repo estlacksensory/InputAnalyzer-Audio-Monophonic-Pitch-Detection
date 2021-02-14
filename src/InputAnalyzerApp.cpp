@@ -21,7 +21,6 @@
 #include "cinder/gl/gl.h"
 #include "cinder/app/RendererGl.h"
 #include "cinder/gl/TextureFont.h"
-
 #include "cinder/audio/audio.h"
 //#include "cinder/audio/dsp/Fft.h"
 #include "../../common/AudioDrawUtils.h"
@@ -79,7 +78,8 @@ void InputAnalyzer::mouseDown( MouseEvent event )
 
 void InputAnalyzer::update()
 {
-    mSpectrumPlot.setBounds( Rectf( 40, 40, (float)getWindowWidth() - 40, (float)getWindowHeight() - 40 ) );
+//    mSpectrumPlot.setBounds( Rectf( 40, 40, (float)getWindowWidth() - 40, (float)getWindowHeight() - 40 ) );
+    mSpectrumPlot.setBounds( Rectf( 40, 40, (float)1024 - 40, (float)768 - 40 ) );
 
     // We copy the magnitude spectrum out from the Node on the main thread, once per update:
     mMagSpectrum = mMonitorSpectralNode->getMagSpectrum();
@@ -105,8 +105,9 @@ void InputAnalyzer::drawSpectralCentroid()
 
     float nyquist = (float)audio::master()->getSampleRate() / 2.0f;
     Rectf bounds = mSpectrumPlot.getBounds();
+//    float ftsize = mMonitorSpectralNode->getFftSize();
 
-    float MyQuisp = (float)audio::master()->getSampleRate(); // TE test
+    float MyQuisp = (float)audio::master()->getSampleRate() / 0.745f; // TE test off by about 10 or 4, I'll take it.
     float frNormT = spectralCentroid / MyQuisp; // TE test
 
     float freqNormalized = spectralCentroid / nyquist;
@@ -117,17 +118,34 @@ void InputAnalyzer::drawSpectralCentroid()
     gl::ScopedColor colorScope( 0.85f, 0.45f, 0, 0.4f ); // transparent orange
     gl::drawSolidRect( verticalBar );
     
-    float FBins = bounds.x1 + frNormT * 640;// bounds.getWidth();
+//    float FBins = bounds.x1 + frNormT * bounds.getWidth();// bounds.getWidth();
+    float FBins = (bounds.x1 + frNormT * 1024) - 40;
+//    float FCalc = FBins * 5;// getfreq from bin???
+    float FCalc = mMonitorSpectralNode->getFreqForBin(FBins);// was FBins
     // might need to correct since bounds could change dep on scr size
 //    float specY = bounds.y1 + frNormT * bounds.getHeight();
-    float FVolm = audio::linearToDecibel( mMagSpectrum[FBins] ); // bin = bounds.x1 identify bin array index
-//    console() << "bin-" << FBins << "|vol " << FVolm << " ";
+    float FVolm = audio::linearToDecibel( mMagSpectrum[FBins] ); //was FBins bin = bounds.x1 identify bin array index
+    
     gl::color(1,1,1);
     gl::drawSolidCircle(vec2(FBins, FVolm), 50);
+    /*
+     if (FVolm > 0) {
+        console() << "FCalc-" << FCalc << "|vol-" << FVolm << "|FBins-" << FBins << " ";
+    }
+     */
+    // if freq is between midc and high e
     
-    if ((FBins > 59) && (FBins < 64) && (FVolm > 0)) {
+    if ((FCalc > 200) && (FCalc < 400) && (FVolm > 10)) {
         gl::color(1,0,0);
-        gl::drawSolidCircle(vec2(getWindowCenter().x,getWindowCenter().y), FVolm * 5);
+        gl::drawSolidCircle(vec2(getWindowCenter().x,getWindowCenter().y*.5), FVolm);
+    }
+    if ((FCalc < 200)  && (FVolm > 10)) {
+        gl::color(0,1,0);
+        gl::drawSolidCircle(vec2(getWindowCenter().x*.5,getWindowCenter().y*.5), FVolm);
+    }
+    if ((FCalc > 400)  && (FVolm > 10)) {
+        gl::color(0,0,1);
+        gl::drawSolidCircle(vec2(getWindowCenter().x*1.5,getWindowCenter().y*.5), FVolm);
     }
     
     // human hearing 20hz 20000hz - only need range of 30 - 5000
@@ -162,7 +180,7 @@ void InputAnalyzer::drawSpectralCentroid()
     // if freq <> 65 440 then draw circle with amplitude as radius
     
     // size_t numBins = mMonitorSpectralNode->getFftSize() / 2;
-    float bin = mMonitorSpectralNode->getFftSize() / 2; //TE
+//    float bin = mMonitorSpectralNode->getFftSize() / 2; //TE
 
     
     
@@ -171,16 +189,6 @@ void InputAnalyzer::drawSpectralCentroid()
     
     
     
-//    float mag = audio::linearToDecibel( mMagSpectrum[bin] );
-    float mg = audio::linearToDecibel( mMagSpectrum[bin] ); // find decibel for specific bin??????????????s
-    float ff = mMonitorSpectralNode->getFreqForBin(5);
-   // gl::color(Color(1,1,1));
-   // gl::drawSolidCircle(vec2(getWindowCenter().x,ff5), mag);
-     if (((ff >= 80) && (ff <= 200))) // need to get mag for specific bin mag > 0 is failing
-    {
-        gl::color(Color(1.0f,1.0f,1.0f));
-        gl::drawSolidCircle(vec2(getWindowCenter().x,getWindowCenter().y*.5), 100);
-    }
 
 
 
@@ -190,31 +198,7 @@ void InputAnalyzer::drawSpectralCentroid()
 
 
 
-    /*
-   for (int i = 0; i < 252; i++)
-    {
-        float FreqFinder = mMonitorSpectralNode->getFreqForBin(i);
-        if ((FreqFinder > int(80)) && (FreqFinder < int(1000))  && (mag > 0)) {
-            gl::color(1.0f,1.0f,1.0f);
-            gl::drawSolidCircle(vec2(getWindowCenter().x,getWindowCenter().y*.5), 200);
-        }
-    }
-    if ((bin < 1000) && (mag > 0))
-    {
-        gl::color(Color(0,0.3f,0));
-        gl::drawSolidCircle(vec2(getWindowCenter().x*.5,getWindowCenter().y*.5), mag);
-    }
-    if ((bin >= 1000) && (bin < 2000) && (mag > 0))
-    {
-        gl::color(Color(0,0.3f,0));
-        gl::drawSolidCircle(vec2(getWindowCenter().x,getWindowCenter().y*.5), mag);
-    }
-    if ((bin >= 2000) && (bin < 3000) && (mag > 0))
-    {
-        gl::color(Color(0,0.3f,0));
-        gl::drawSolidCircle(vec2(getWindowCenter().x*1.5,getWindowCenter().y*.5), mag);
-    }
-     */
+
 }
 
 void InputAnalyzer::drawLabels()
