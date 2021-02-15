@@ -1,4 +1,4 @@
-# InputAnalyzer-adjusted-Estlack-2021-git
+# InputAnalyzer-Audio-Monophonic-Pitch-Detection
 
 This is an early attempt at an audio reactive graphic animation display. Right now, I am working to set it up so I can read audio inputs from a MacBook Pro's microphone. The InputAnalyzer (authored by Richard Eakin) takes the signal and produces a live graphic display of FFT using MonitorSpectralNode. 
 
